@@ -1,0 +1,61 @@
+name: AccuKnox Sast Scan
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          repository: 'udit-uniyal/Devops'
+          ref: 'main'
+      
+      - name: Install Maven
+        run: |
+          wget https://dlcdn.apache.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.tar.gz
+          tar -xzvf apache-maven-3.9.4-bin.tar.gz
+          mv apache-maven-3.9.4 /usr/local/apache-maven-3.9.4
+          echo "export PATH=\$PATH:/usr/local/apache-maven-3.9.4/bin" >> $GITHUB_ENV
+
+      - name: Compile Application
+        working-directory: addressbook/addressbook_main
+        run: mvn compile
+
+      - name: Test Application
+        working-directory: addressbook/addressbook_main
+        run: mvn test
+
+      - name: SonarQube Analysis
+        working-directory: addressbook/addressbook_main
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          MAVEN_OPTS: -Dsonar.projectKey=jenkins-project
+        run: |
+          mvn clean verify sonar:sonar \
+            -Dsonar.host.url=http://host.docker.internal:9000 \
+            -Dsonar.login=$SONAR_TOKEN
+
+      - name: Run Docker container
+        run: |
+          docker run --add-host host.docker.internal:host-gateway --rm \
+            -e SQ_URL=http://host.docker.internal:9000 \
+            -e SQ_AUTH_TOKEN=${{ secrets.SQ_AUTH_TOKEN }} \
+            -e REPORT_PATH=/app/data/ \
+            -v ${{ github.workspace }}:/app/data/ \
+            accuknox/sastjob:latest
+
+      - name: Run Curl commands
+        run: |
+          for file in $(ls -1 ${{ github.workspace }}/SQ-*.json); do
+            curl --location --request POST  "https://cspm.demo.accuknox.com/api/v1/artifact/?tenant_id=167&data_type=SQ&save_to_s3=false" \
+            --header "Tenant-Id: 167" \
+            --header "Authorization: Bearer ${{ secrets.ACCUKNOX_TOKEN }}" \
+            --form "file=@$file"
+          done
+
