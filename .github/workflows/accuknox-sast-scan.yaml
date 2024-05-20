@@ -20,8 +20,8 @@ jobs:
         run: |
           wget https://dlcdn.apache.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.tar.gz
           tar -xzvf apache-maven-3.9.4-bin.tar.gz
-          mv apache-maven-3.9.4 /usr/local/apache-maven-3.9.4
-          echo "export PATH=\$PATH:/usr/local/apache-maven-3.9.4/bin" >> $GITHUB_ENV
+          sudo mv apache-maven-3.9.4 /usr/local/apache-maven-3.9.4
+          sudo echo "export PATH=\$PATH:/usr/local/apache-maven-3.9.4/bin" >> $GITHUB_ENV
 
       - name: Compile Application
         working-directory: addressbook/addressbook_main
@@ -38,14 +38,14 @@ jobs:
           MAVEN_OPTS: -Dsonar.projectKey=jenkins-project
         run: |
           mvn clean verify sonar:sonar \
-            -Dsonar.host.url=http://host.docker.internal:9000 \
-            -Dsonar.login=$SONAR_TOKEN
+            -Dsonar.host.url=https://4867-103-191-182-46.ngrok-free.app \
+            -Dsonar.login=${{ SONAR_TOKEN }}
 
       - name: Run Docker container
         run: |
           docker run --add-host host.docker.internal:host-gateway --rm \
             -e SQ_URL=http://host.docker.internal:9000 \
-            -e SQ_AUTH_TOKEN=${{ secrets.SQ_AUTH_TOKEN }} \
+            -e SQ_AUTH_TOKEN=${{ SQ_AUTH_TOKEN }} \
             -e REPORT_PATH=/app/data/ \
             -v ${{ github.workspace }}:/app/data/ \
             accuknox/sastjob:latest
