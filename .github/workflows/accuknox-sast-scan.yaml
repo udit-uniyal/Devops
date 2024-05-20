@@ -39,13 +39,13 @@ jobs:
         run: |
           mvn clean verify sonar:sonar \
             -Dsonar.host.url=https://4867-103-191-182-46.ngrok-free.app \
-            -Dsonar.login=${{ SONAR_TOKEN }}
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
       - name: Run Docker container
         run: |
           docker run --add-host host.docker.internal:host-gateway --rm \
             -e SQ_URL=http://host.docker.internal:9000 \
-            -e SQ_AUTH_TOKEN=${{ SQ_AUTH_TOKEN }} \
+            -e SQ_AUTH_TOKEN=${{ secrets.SONAR_TOKEN }} \
             -e REPORT_PATH=/app/data/ \
             -v ${{ github.workspace }}:/app/data/ \
             accuknox/sastjob:latest
